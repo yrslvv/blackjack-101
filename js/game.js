@@ -126,7 +126,34 @@ function endRound(finalMessage) {
   renderHands();
   updateStatus(finalMessage);
   disableControls();
+
+  // Create a container for post-round buttons
+  const statusLog = document.getElementById('statusLog');
+  const buttonContainer = document.createElement('div');
+  buttonContainer.id = 'postRoundButtons';
+  buttonContainer.style.marginTop = '16px';
+
+  // "Try Again" button
+  const tryAgainBtn = document.createElement('button');
+  tryAgainBtn.textContent = 'Try Again';
+  tryAgainBtn.addEventListener('click', () => {
+    startNewRound();
+  });
+
+  // "Quit" button
+  const quitBtn = document.createElement('button');
+  quitBtn.textContent = 'Quit';
+  quitBtn.style.marginLeft = '10px';
+  quitBtn.addEventListener('click', () => {
+    teardownGame();
+    exitToMainMenu();
+  });
+
+  buttonContainer.appendChild(tryAgainBtn);
+  buttonContainer.appendChild(quitBtn);
+  statusLog.appendChild(buttonContainer);
 }
+
 // handles player pressing hit
 function onHit() {
   if (roundOver) return;
@@ -245,6 +272,23 @@ function startGame() {
   renderHands();
 }
 
+function startNewRound() {
+  // Clear previous status messages and buttons
+  const log = document.getElementById('statusLog');
+  if (log) log.innerHTML = '';
+
+  roundOver = false;
+  dealerRevealed = false;
+
+  // Reset hands and deck
+  buildDeck();
+  shuffleDeck();
+  playerHand = [drawCard(), drawCard()];
+  dealerHand = [drawCard(), drawCard()];
+
+  enableControls();
+  renderHands();
+}
 
 // Creates the pause (side) menu + overlay once per game start.
 function buildPauseMenu() {
