@@ -270,6 +270,13 @@ function startGame() {
   enableControls();
   
   renderHands();
+
+  //Check for player blackjack from initial hand given
+  const playerTotal = calculateHandValue(playerHand);
+  if (playerTotal==21){
+    endRound('Blackjack! Player wins automatically with 21.');
+  }
+  
 }
 
 function startNewRound() {
