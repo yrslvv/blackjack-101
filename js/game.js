@@ -4,13 +4,9 @@ let _escHandlerBound = null;  // to remove listener cleanly on exit to menu
 let deck = [];
 let playerHand = [];
 let dealerHand = [];
-
-const unicodeCards = {
-  "A-S":"🂡","2-S":"🂢","3-S":"🂣","4-S":"🂤","5-S":"🂥","6-S":"🂦","7-S":"🂧","8-S":"🂨","9-S":"🂩","10-S":"🂪","J-S":"🂫","Q-S":"🂭","K-S":"🂮",
-  "A-H":"🂱","2-H":"🂲","3-H":"🂳","4-H":"🂴","5-H":"🂵","6-H":"🂶","7-H":"🂷","8-H":"🂸","9-H":"🂹","10-H":"🂺","J-H":"🂻","Q-H":"🂽","K-H":"🂾",
-  "A-D":"🃁","2-D":"🃂","3-D":"🃃","4-D":"🃄","5-D":"🃅","6-D":"🃆","7-D":"🃇","8-D":"🃈","9-D":"🃉","10-D":"🃊","J-D":"🃋","Q-D":"🃍","K-D":"🃎",
-  "A-C":"🃑","2-C":"🃒","3-C":"🃓","4-C":"🃔","5-C":"🃕","6-C":"🃖","7-C":"🃗","8-C":"🃘","9-C":"🃙","10-C":"🃚","J-C":"🃛","Q-C":"🃝","K-C":"🃞"
-};
+//tracks game states
+let roundOver = false;
+let dealerRevealed = false;
 
 // Building the Deck
 function buildDeck(){
@@ -41,11 +37,46 @@ function drawCard() {
   return deck.pop();
 }
 
+//helper function for calculating total hand values 
+function calculateHandValue(hand) {
+  let total = 0;
+  let aces = 0;
+  for (const code of hand) {
+    const rank = code.split("-")[0];
+    if (rank === "A") {
+      aces += 1;
+      total += 11;
+    } else if (["K","Q","J","10"].includes(rank)) {
+      total += 10;
+    } else {
+      total += parseInt(rank, 10);
+    }
+  }
+  // downgrade Aces from 11 to 1 as needed
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces -= 1;
+  }
+  return total;
+}
+
 // Creating the Card Element using Unicode
 function createCardElement(cardCode) {
     const div = document.createElement('div');
     div.classList.add('card');
-    div.textContent = cardCode === '🂠' ? '🂠' : unicodeCards[cardCode];
+
+    const img = document.createElement('img');
+    img.classList.add('card-image');
+
+    if (cardCode === '🂠') {
+        img.src = 'assets/cards/back.png'; // backside image
+        img.alt = 'Card Back';
+    } else {
+        img.src = `assets/cards/${cardCode}.png`; // front image (e.g. "AS.png", "10H.png")
+        img.alt = cardCode;
+    }
+
+    div.appendChild(img);
     return div;
 }
 
@@ -61,15 +92,143 @@ function renderHands() {
 
   // Loop through Dealer's hand and create the visual for each card
   dealerHand.forEach((card,index) => {
-    const cardDiv = createCardElement(index === 0 ? '🂠' : card);
+    const cardDiv = createCardElement((index === 0 && !dealerRevealed) ? '🂠' : card); //changed so that revealed upon stand or bust
     dealerContainer.appendChild(cardDiv);
   });
 
   // Loop through Player's hand and do the same thing above
-    dealerHand.forEach((card,index) => {
+  playerHand.forEach((card,index) => { 
     const cardDiv = createCardElement(card);
     playerContainer.appendChild(cardDiv);
   });
+
+  // displays running totals for both sides under the buttons
+  const status = document.getElementById('status');
+  const pVal = calculateHandValue(playerHand);
+  const dVal = dealerRevealed ? calculateHandValue(dealerHand) : '??';
+  status.textContent = `Player: ${pVal}    |    Dealer: ${dVal}`;
+}
+
+// Function for playing sound effects
+function playSound(soundFile, volume) {
+  const audio = new Audio(soundFile);
+  audio.volume = volume;
+  audio.play().catch(err => console.warn('Sound not found:', err)); // Catch error if file is not found
+}
+
+// function for logging round updates
+function updateStatus(msg) {
+  const log = document.getElementById('statusLog');
+  if (!log) return;
+  const line = document.createElement('div');
+  line.textContent = msg;
+  log.appendChild(line);
+}
+// Helpers for enabling / disabling the hit and stand buttons since they lacked functionality before
+function enableControls() {
+  document.getElementById('hit-btn').disabled = false;
+  document.getElementById('stand-btn').disabled = false;
+}
+function disableControls() {
+  document.getElementById('hit-btn').disabled = true;
+  document.getElementById('stand-btn').disabled = true;
+}
+// helper for ending the round
+function endRound(finalMessage) {
+  roundOver = true;
+  dealerRevealed = true;
+  renderHands();
+  updateStatus(finalMessage);
+  disableControls();
+
+  // Create a container for post-round buttons
+  const statusLog = document.getElementById('statusLog');
+  const buttonContainer = document.createElement('div');
+  buttonContainer.id = 'postRoundButtons';
+  buttonContainer.style.marginTop = '16px';
+
+  // "Try Again" button
+  const tryAgainBtn = document.createElement('button');
+  tryAgainBtn.textContent = 'Try Again';
+  tryAgainBtn.addEventListener('click', () => {
+    playSound('assets/sound/click.mp3', 1.0);
+    startNewRound();
+  });
+
+  // "Quit" button
+  const quitBtn = document.createElement('button');
+  quitBtn.textContent = 'Quit';
+  quitBtn.style.marginLeft = '10px';
+  quitBtn.addEventListener('click', () => {
+    playSound('assets/sound/click.mp3', 1.0);
+    teardownGame();
+    exitToMainMenu();
+  });
+
+  buttonContainer.appendChild(tryAgainBtn);
+  buttonContainer.appendChild(quitBtn);
+  statusLog.appendChild(buttonContainer);
+}
+
+// handles player pressing hit
+function onHit() {
+  if (roundOver) return;
+  // draws & renders a card
+  playerHand.push(drawCard());
+  renderHands();
+
+  // checks for bust or 21
+  const pVal = calculateHandValue(playerHand);
+  if (pVal > 21) {
+    playSound('assets/sound/lose.mp3', 0.8);
+    endRound(`Player busts with ${pVal}. Dealer wins.`);
+  } else if (pVal === 21) {
+    // auto-stand on 21
+    updateStatus('Player has 21. Standing automatically.');
+    onStand();
+  }
+}
+
+function dealerPlay() {
+  // reveals dealers cards
+  dealerRevealed = true;
+  renderHands();
+
+  // Dealer hits until total >= 17
+  let dVal = calculateHandValue(dealerHand);
+  while (dVal < 17) {
+    updateStatus(`Dealer hits at ${dVal}.`);
+    dealerHand.push(drawCard());
+    dVal = calculateHandValue(dealerHand);
+    renderHands();
+  }
+  updateStatus(`Dealer stands at ${dVal}.`);
+  return dVal;
+}
+// handles player pressing hit
+function onStand() {
+  if (roundOver) return;
+
+  disableControls();
+  const pVal = calculateHandValue(playerHand);
+
+  const dVal = dealerPlay();
+
+  // Resolve
+  if (dVal > 21) {
+    playSound('assets/sound/win.mp3', 0.8);
+    endRound(`Dealer busts with ${dVal}. Player wins!`);
+    return;
+  }
+  if (dVal > pVal) {
+    playSound('assets/sound/lose.mp3', 0.8);
+    endRound(`Dealer ${dVal} beats Player ${pVal}. Dealer wins.`);
+  } else if (dVal < pVal) {
+    playSound('assets/sound/win.mp3', 0.8);
+    endRound(`Player ${pVal} beats Dealer ${dVal}. Player wins!`);
+  } else {
+    endRound(`Push at ${pVal}.`);
+  }
 }
 
 function startGame() {
@@ -77,10 +236,10 @@ function startGame() {
   app.classList.remove('fade-out', 'fade-in');
   app.innerHTML = ''; // remove menu content
 
-  // Light blue background to indicate "game" (Dev Note: Changed it to Green because light blue is too bright - Joe)
+  // Green background to indicate "game"
   document.body.style.backgroundColor = '#10943cff';
 
-  // Minimal “game screen” placeholder 
+  // added running total text in the html
   const gameScreen = document.createElement('div');
   gameScreen.id = 'gameRoot';
   gameScreen.innerHTML = `
@@ -94,10 +253,15 @@ function startGame() {
     <div id="player-area" class = "deck">
     <h3>Player</h3>
     <div id="player-cards" class = "card-container"></div>
+
+    </div>
+    <div id="controls">
+    <button id="hit-btn">Hit</button>
+    <button id="stand-btn">Stand</button>
     </div>
 
-    <button id="hit-btn"> Hit </button>
-    <button id="stand-btn"> Stand </button>
+    <div id="status" style="margin-top:14px; font-weight:600;"></div>
+    <div id="statusLog" style="margin-top:8px; opacity:0.9;"></div>
   `;
   app.appendChild(gameScreen);
 
@@ -114,12 +278,52 @@ function startGame() {
   buildDeck();
   shuffleDeck();
 
+  roundOver = false;
+  dealerRevealed = false;
+
   playerHand = [drawCard(), drawCard()];
   dealerHand = [drawCard(), drawCard()];
 
+  // attached button events for hit and stand
+  document.getElementById('hit-btn').addEventListener('click', () => {
+    playSound('assets/sound/hit.mp3', 0.5);
+    onHit();
+  });
+
+  document.getElementById('stand-btn').addEventListener('click', () => {
+    playSound('assets/sound/click.mp3', 1.0);
+    onStand();
+  });;
+
+  enableControls();
+  
   renderHands();
+
+  //Check for player blackjack from initial hand given
+  const playerTotal = calculateHandValue(playerHand);
+  if (playerTotal==21){
+    endRound('Blackjack! Player wins automatically with 21.');
+  }
+  
 }
 
+function startNewRound() {
+  // Clear previous status messages and buttons
+  const log = document.getElementById('statusLog');
+  if (log) log.innerHTML = '';
+
+  roundOver = false;
+  dealerRevealed = false;
+
+  // Reset hands and deck
+  buildDeck();
+  shuffleDeck();
+  playerHand = [drawCard(), drawCard()];
+  dealerHand = [drawCard(), drawCard()];
+
+  enableControls();
+  renderHands();
+}
 
 // Creates the pause (side) menu + overlay once per game start.
 function buildPauseMenu() {
@@ -156,6 +360,7 @@ function buildPauseMenu() {
   });
 
   document.getElementById('btnExitToMenu').addEventListener('click', () => {
+    playSound('assets/sound/click.mp3', 1.0);
     // Cleanup game listeners/UI before returning to main menu
     teardownGame();
     exitToMainMenu();

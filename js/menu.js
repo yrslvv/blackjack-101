@@ -14,10 +14,12 @@ function showMainMenu() {
 
   // Event listeners
   document.getElementById('playBtn').addEventListener('click', () => {
+    playSound('assets/sound/stand.mp3', 1.0);
     fadeOutAndStartGame();
   });
 
   document.getElementById('exitBtn').addEventListener('click', () => {
+    playSound('assets/sound/stand.mp3', 1.0);
     closeApp();
   });
 }

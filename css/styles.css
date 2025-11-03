@@ -96,7 +96,7 @@ button:hover {
 
 .card {
   width: 120px;
-  height: 160px;
+  height: 183px;
   border: 2px solid #333;
   border-radius: 8px;
   background: white;
@@ -105,4 +105,9 @@ button:hover {
   align-items: center;
   justify-content: center;
   color: black;
+}
+
+.card-image {
+  width: 120px;
+  height: 183px;
 }
