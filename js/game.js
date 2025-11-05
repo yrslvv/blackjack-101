@@ -8,6 +8,63 @@ let dealerHand = [];
 let roundOver = false;
 let dealerRevealed = false;
 
+// --- Skeletal Tooltips -- simple plain-text tips shown on user turns ---
+const Tips = {
+  list: [
+  "Tip: Dealer always until 16 and stands on 17 or higher.",
+  "Tip: Try and get as close to 21 as possible but don't go over!",
+  "Tip: An Ace can either count as an 11 or 1",
+  "Tip: If you have a hand that is 17 or higher, it's usually best to stand.",
+  "Tip: Face cards are all worth 10 points.",
+  "Tip: Going over 21 means that you automatically lose.",
+  "Tip: Dealer plays by fixed rules, you can use this to your advantage.",
+  "Tip: A 'soft 17' is a hand which equals 17 but includes an ace.",
+  "Tip: Pay attention to the dealers face up card before deciding if you should hit.",
+  "Tip: A 10 or a face card is the most common cause of a draw.",
+  "Tip: If the dealer has a weak face card, it may be smart to stand early.",
+  "Tip: If you have 12–16 and the dealer shows a 7 or higher, you may consider hitting.",
+  "Tip: The goal is not to hit 21, but to beat the dealers hand.",
+  "Tip: You cannot bust on your first two cards, so think before you consider hitting.",
+  "Tip: Blackjack (an Ace + a 10) pays more than a regular win.",
+  "Tip: Click the tooltip to hide it at any time.",
+  "Tip: You can replay the game at any time using the menu."
+  ],
+  i: -1,
+  el: null,
+
+  init() {
+    if (this.el) return;
+    this.el = document.createElement("div");
+    this.el.id = "tooltip";
+    this.el.setAttribute("role", "button");
+    this.el.setAttribute("tabindex", "0");
+    this.el.setAttribute("aria-label", "Game tip. Click to dismiss.");
+    this.el.addEventListener("click", () => this.hide());
+    this.el.addEventListener("keydown", (e) => {
+      if (["Escape", "Enter", " "].includes(e.key)) this.hide();
+    });
+    document.body.appendChild(this.el);
+    this.el.classList.add("hidden"); // hidden until first tip
+  },
+
+  show(text) {
+    this.init();
+    this.el.classList.remove("hidden");
+    this.el.textContent = text;
+  },
+
+  hide() {
+    if (!this.el) return;
+    this.el.classList.add("hidden");
+  },
+
+  next() {
+  if (!this.list.length) return;
+  this.i = Math.floor(Math.random() * this.list.length);
+  this.show(this.list[this.i]);
+  }
+};
+
 // Building the Deck
 function buildDeck(){
   let values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
@@ -140,7 +197,7 @@ function endRound(finalMessage) {
   renderHands();
   updateStatus(finalMessage);
   disableControls();
-
+  Tips.hide();
   // Create a container for post-round buttons
   const statusLog = document.getElementById('statusLog');
   const buttonContainer = document.createElement('div');
@@ -187,6 +244,7 @@ function onHit() {
     updateStatus('Player has 21. Standing automatically.');
     onStand();
   }
+  if (!roundOver) Tips.next();
 }
 
 function dealerPlay() {
@@ -210,6 +268,7 @@ function onStand() {
   if (roundOver) return;
 
   disableControls();
+  Tips.next();
   const pVal = calculateHandValue(playerHand);
 
   const dVal = dealerPlay();
@@ -299,6 +358,7 @@ function startGame() {
   
   renderHands();
 
+  Tips.next();
   //Check for player blackjack from initial hand given
   const playerTotal = calculateHandValue(playerHand);
   if (playerTotal==21){
@@ -323,6 +383,7 @@ function startNewRound() {
 
   enableControls();
   renderHands();
+  Tips.next();
 }
 
 // Creates the pause (side) menu + overlay once per game start.
