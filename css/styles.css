@@ -111,3 +111,26 @@ button:hover {
   width: 120px;
   height: 183px;
 }
+
+#tooltip {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: min(90vw, 520px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.35;
+  opacity: 1;
+  cursor: pointer;
+  user-select: none;
+  pointer-events: auto;
+  z-index: 2000;
+}
+#tooltip.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
