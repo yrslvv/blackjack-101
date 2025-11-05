@@ -50,6 +50,7 @@ const Tips = {
   show(text) {
     this.init();
     this.el.classList.remove("hidden");
+    this.el.textContent = text;
   },
 
   hide() {
