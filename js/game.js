@@ -7,6 +7,9 @@ let dealerHand = [];
 //tracks game states
 let roundOver = false;
 let dealerRevealed = false;
+//Betting vars
+let playerChips = 1000;
+let currentBet = 0;
 
 // --- Skeletal Tooltips -- simple plain-text tips shown on user turns ---
 const Tips = {
@@ -181,6 +184,13 @@ function updateStatus(msg) {
   line.textContent = msg;
   log.appendChild(line);
 }
+
+//Update chip balance
+function updateChipDisplay() {
+  const balanceEl = document.getElementById("chipBalance");
+  if (balanceEl) balanceEl.textContent = playerChips;
+}
+
 // Helpers for enabling / disabling the hit and stand buttons since they lacked functionality before
 function enableControls() {
   document.getElementById('hit-btn').disabled = false;
@@ -195,6 +205,44 @@ function endRound(finalMessage) {
   roundOver = true;
   dealerRevealed = true;
   renderHands();
+  
+  let pVal = calculateHandValue(playerHand);
+  let dVal = calculateHandValue(dealerHand);
+  let message = finalMessage;
+
+  // --- Betting outcome ---
+  if (pVal > 21) {
+    // player busts, lose bet
+    message += ` You lost $${currentBet}.`;
+  } else if (dVal > 21 || pVal > dVal) {
+    // player wins
+    let winnings = currentBet * 2;
+    playerChips += winnings;
+    message += ` You won $${currentBet}!`;
+  } else if (pVal === dVal) {
+    // push, refund bet
+    playerChips += currentBet;
+    message += " Push! — your bet is returned.";
+  } else {
+    // dealer wins
+    message += ` Dealer wins. You lost $${currentBet}.`;
+  }
+
+  updateStatus(message);
+  updateChipDisplay();
+  disableControls();
+
+  // Reset bet for next round
+  currentBet = 0;
+
+  // Re-enable betting for next round
+  const betBtn = document.getElementById("placeBet-btn");
+  const betInput = document.getElementById("betAmount");
+  if (betBtn && betInput) {
+    betBtn.disabled = false;
+    betInput.disabled = false;
+  }
+
   updateStatus(finalMessage);
   disableControls();
   Tips.hide();
@@ -313,6 +361,15 @@ function startGame() {
     <h3>Player</h3>
     <div id="player-cards" class = "card-container"></div>
 
+    <div id="betting-area">
+    <h4>Betting</h4>
+    <p>Balance: $<span id="chipBalance">1000</span></p>
+    <input type="number" id="betAmount" placeholder="Enter bet" min="10" max="500" value="100">
+    <button id="placeBet-btn">Place Bet</button>
+    </div>
+
+
+
     </div>
     <div id="controls">
     <button id="hit-btn">Hit</button>
@@ -323,6 +380,33 @@ function startGame() {
     <div id="statusLog" style="margin-top:8px; opacity:0.9;"></div>
   `;
   app.appendChild(gameScreen);
+  
+  // Betting logic
+  document.getElementById("placeBet-btn").addEventListener("click", () => {
+  const betInput = document.getElementById("betAmount");
+  const betValue = parseInt(betInput.value);
+
+  if (isNaN(betValue) || betValue <= 0) {
+    alert("Please enter a valid bet amount!");
+    return;
+  }
+  if (betValue > playerChips) {
+    alert("You don’t have enough chips for that bet!");
+    return;
+  }
+
+  currentBet = betValue;
+  playerChips -= betValue;
+  updateChipDisplay();
+
+  // Disable betting UI during round
+  document.getElementById("placeBet-btn").disabled = true;
+  betInput.disabled = true;
+
+  // Start first round after placing a bet
+  startNewRound();
+  });
+
 
   // Build the pause menu (hidden by default)
   buildPauseMenu();
@@ -364,7 +448,11 @@ function startGame() {
   if (playerTotal==21){
     endRound('Blackjack! Player wins automatically with 21.');
   }
-  
+
+  //update chip display
+  updateChipDisplay();
+
+
 }
 
 function startNewRound() {
