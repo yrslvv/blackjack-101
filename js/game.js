@@ -10,6 +10,9 @@ let dealerRevealed = false;
 //Betting vars
 let playerChips = 1000;
 let currentBet = 0;
+//tutorial vars
+let isTutorial = false;
+let tutorialDeck = null;
 
 // --- Skeletal Tooltips -- simple plain-text tips shown on user turns ---
 const Tips = {
@@ -94,6 +97,10 @@ function shuffleDeck() {
 
 // Drawing the Card
 function drawCard() {
+  if (isTutorial && tutorialDeck && tutorialDeck.length > 0) {
+    return tutorialDeck.shift();
+  }
+  
   return deck.pop();
 }
 
@@ -257,7 +264,13 @@ function endRound(finalMessage) {
   tryAgainBtn.textContent = 'Try Again';
   tryAgainBtn.addEventListener('click', () => {
     playSound('assets/sound/click.mp3', 1.0);
-    startNewRound();
+    
+    if(isTutorial){
+      restartCurrentTutorial();
+    }
+    else{
+      startNewRound();
+    }
   });
 
   // "Quit" button
@@ -269,8 +282,19 @@ function endRound(finalMessage) {
     teardownGame();
     exitToMainMenu();
   });
-
   buttonContainer.appendChild(tryAgainBtn);
+
+  if (isTutorial) {
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next Tutorial';
+  nextBtn.style.marginLeft = '10px';
+  nextBtn.addEventListener('click', () => {
+    playSound('assets/sound/click.mp3', 1.0);
+    startNextTutorial();
+  });
+  buttonContainer.appendChild(nextBtn);
+  }
+
   buttonContainer.appendChild(quitBtn);
   statusLog.appendChild(buttonContainer);
 }
@@ -568,7 +592,9 @@ function teardownGame() {
     window.removeEventListener('keydown', _escHandlerBound);
     _escHandlerBound = null;
   }
-
+  //ensures neutral state upon game ending
+  isTutorial = false;
+  tutorialDeck = null;
   // Remove pause UI elements to avoid duplicates on next game start
   const panel = document.getElementById('pauseMenu');
   const overlay = document.getElementById('pauseOverlay');
