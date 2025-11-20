@@ -97,12 +97,18 @@ function shuffleDeck() {
 
 // Drawing the Card
 function drawCard() {
-  if (isTutorial && tutorialDeck && tutorialDeck.length > 0) {
-    return tutorialDeck.shift();
+  if (isTutorial) {
+    if (tutorialDeck && tutorialDeck.length > 0) {
+      return tutorialDeck.shift();
+    } else {
+      // Prevent undefined card rendering
+      updateStatus("No more cards available in this tutorial scenario.");
+      return null;
+    }
   }
-  
   return deck.pop();
 }
+
 
 //helper function for calculating total hand values 
 function calculateHandValue(hand) {
@@ -269,7 +275,8 @@ function endRound(finalMessage) {
 
 
   // Create a container for post-round buttons
-  const statusLog = document.getElementById('statusLog');
+  const statusLog = document.getElementById('statusLog') || document.body;
+
   const buttonContainer = document.createElement('div');
   buttonContainer.id = 'postRoundButtons';
   buttonContainer.style.marginTop = '16px';

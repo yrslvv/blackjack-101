@@ -352,23 +352,43 @@ function checkTutorialProgress() {
 // Override the hit function for tutorial tracking
 const originalOnHit = onHit;
 function tutorialOnHit() {
-  if (isTutorial) {
-    tutorialHitCount++;
-    removeButtonHighlights();
+  if (!isTutorial || roundOver) return;
+
+  const scenario = tutorialScenarios[currentTutorialIndex];
+  const step = scenario.steps[currentStepIndex];
+
+  // Wrong move
+  if (!step.recommendation.toLowerCase().includes("hit")) {
+    updateStatus("That is not the recommended move!");
+    showCurrentTutorialStep();
+    return;
   }
-  originalOnHit();
-  if (isTutorial) {
-    checkTutorialProgress();
-  }
+
+  // ✔ CORRECT MOVE — finish scenario immediately
+  dealerRevealed = true;
+  renderHands();
+  endRound("Great! You followed the correct move.");
 }
 
 // Override the stand function for tutorial tracking
 const originalOnStand = onStand;
 function tutorialOnStand() {
-  if (isTutorial) {
-    removeButtonHighlights();
+  if (!isTutorial || roundOver) return;
+
+  const scenario = tutorialScenarios[currentTutorialIndex];
+  const step = scenario.steps[currentStepIndex];
+
+  // Wrong move
+  if (!step.recommendation.toLowerCase().includes("stand")) {
+    updateStatus("hat is not the recommended move!");
+    showCurrentTutorialStep();
+    return;
   }
-  originalOnStand();
+
+  // ✔ CORRECT MOVE — finish scenario immediately
+  dealerRevealed = true;
+  renderHands();
+  endRound("Great! You followed the correct move.");
 }
 
 function startTutorialGame(index = 0) {
