@@ -13,6 +13,13 @@ let currentBet = 0;
 //tutorial vars
 let isTutorial = false;
 let tutorialDeck = null;
+// Player Stats
+const stats = {
+  playerWins: 0,
+  dealerWins: 0,
+  pushes: 0,
+  totalRounds: 0
+};
 
 // --- Skeletal Tooltips -- simple plain-text tips shown on user turns ---
 const Tips = {
@@ -70,6 +77,16 @@ const Tips = {
   this.show(this.list[this.i]);
   }
 };
+
+function updateStats() {
+  document.getElementById("player-wins").textContent = stats.playerWins;
+  document.getElementById("dealer-wins").textContent = stats.dealerWins;
+  document.getElementById("total-pushes").textContent = stats.pushes;
+  document.getElementById("total-rounds").textContent = stats.totalRounds;
+
+  const winRate = stats.totalRounds === 0 ? 0 : Math.round((stats.playerWins / (stats.totalRounds - stats.pushes)) * 100);
+  document.getElementById("win-rate").textContent = winRate + "%";
+}
 
 // Building the Deck
 function buildDeck(){
@@ -226,21 +243,27 @@ function endRound(finalMessage) {
   // --- Betting outcome ---
   if (pVal > 21) {
     // player busts, lose bet
+    stats.dealerWins++;
     message += ` You lost $${currentBet}.`;
   } else if (dVal > 21 || pVal > dVal) {
     // player wins
     let winnings = currentBet * 2;
     playerChips += winnings;
+    stats.playerWins++;
     message += ` You won $${currentBet}!`;
   } else if (pVal === dVal) {
     // push, refund bet
     playerChips += currentBet;
+    stats.pushes++;
     message += " Push! — your bet is returned.";
   } else {
     // dealer wins
+    stats.dealerWins++;
     message += ` Dealer wins. You lost $${currentBet}.`;
   }
 
+  stats.totalRounds++;
+  updateStats();
   updateStatus(message);
   updateChipDisplay();
   disableControls();
@@ -415,9 +438,15 @@ function startGame() {
     <button id="placeBet-btn">Place Bet</button>
     </div>
 
-
-
+    <div id="game-stats">
+      <h3>Game Statistics:</h3>
+      <p>Player Wins: <span id="player-wins">0</span</p>
+      <p>Dealer Wins: <span id="dealer-wins">0</span</p>
+      <p>Total Pushes: <span id="total-pushes">0</span</p>
+      <p>Total Rounds: <span id="total-rounds">0</span</p>
+      <p>Player's Win Rate: <span id="win-rate">0%</span</p>
     </div>
+
     <div id="controls">
     <button id="hit-btn">Hit</button>
     <button id="stand-btn">Stand</button>
