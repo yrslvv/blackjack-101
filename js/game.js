@@ -242,17 +242,32 @@ function endRound(finalMessage) {
   // Reset bet for next round
   currentBet = 0;
 
-  // Re-enable betting for next round
-  const betBtn = document.getElementById("placeBet-btn");
-  const betInput = document.getElementById("betAmount");
-  if (betBtn && betInput) {
-    betBtn.disabled = false;
-    betInput.disabled = false;
+  // Re-enable betting for next round (only in regular game mode)
+  if (!isTutorial) {
+    const betBtn = document.getElementById("placeBet-btn");
+    const betInput = document.getElementById("betAmount");
+    if (betBtn && betInput) {
+      betBtn.disabled = false;
+      betInput.disabled = false;
+    }
   }
 
-  updateStatus(finalMessage);
-  disableControls();
   Tips.hide();
+  
+  // Remove any button highlights from tutorial
+  document.querySelectorAll('.tutorial-highlight').forEach(el => {
+    el.classList.remove('tutorial-highlight');
+  });
+  
+  // Remove tutorial info button when round ends
+  if (isTutorial) {
+    const tutorialInfoBtn = document.getElementById('tutorialInfoBtn');
+    if (tutorialInfoBtn) {
+      tutorialInfoBtn.remove();
+    }
+  }
+
+
   // Create a container for post-round buttons
   const statusLog = document.getElementById('statusLog');
   const buttonContainer = document.createElement('div');
@@ -272,6 +287,19 @@ function endRound(finalMessage) {
       startNewRound();
     }
   });
+  buttonContainer.appendChild(tryAgainBtn);
+
+  // "Next Tutorial" button (only in tutorial mode)
+  if (isTutorial) {
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next Tutorial';
+    nextBtn.style.marginLeft = '10px';
+    nextBtn.addEventListener('click', () => {
+      playSound('assets/sound/click.mp3', 1.0);
+      startNextTutorial();
+    });
+    buttonContainer.appendChild(nextBtn);
+  }
 
   // "Quit" button
   const quitBtn = document.createElement('button');
@@ -282,20 +310,8 @@ function endRound(finalMessage) {
     teardownGame();
     exitToMainMenu();
   });
-  buttonContainer.appendChild(tryAgainBtn);
-
-  if (isTutorial) {
-  const nextBtn = document.createElement('button');
-  nextBtn.textContent = 'Next Tutorial';
-  nextBtn.style.marginLeft = '10px';
-  nextBtn.addEventListener('click', () => {
-    playSound('assets/sound/click.mp3', 1.0);
-    startNextTutorial();
-  });
-  buttonContainer.appendChild(nextBtn);
-  }
-
   buttonContainer.appendChild(quitBtn);
+
   statusLog.appendChild(buttonContainer);
 }
 
@@ -592,9 +608,22 @@ function teardownGame() {
     window.removeEventListener('keydown', _escHandlerBound);
     _escHandlerBound = null;
   }
-  //ensures neutral state upon game ending
+  
+  // Clean up tutorial state
   isTutorial = false;
   tutorialDeck = null;
+  
+  // Remove tutorial modal if it exists
+  const modal = document.getElementById('tutorialModal');
+  if (modal) {
+    modal.remove();
+  }
+  
+  // Remove button highlights
+  document.querySelectorAll('.tutorial-highlight').forEach(el => {
+    el.classList.remove('tutorial-highlight');
+  });
+  
   // Remove pause UI elements to avoid duplicates on next game start
   const panel = document.getElementById('pauseMenu');
   const overlay = document.getElementById('pauseOverlay');
@@ -604,4 +633,5 @@ function teardownGame() {
   // Clear game root
   const app = document.getElementById('app');
   app.innerHTML = '';
-}
+} '';
+
