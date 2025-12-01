@@ -18,7 +18,8 @@ const stats = {
   playerWins: 0,
   dealerWins: 0,
   pushes: 0,
-  totalRounds: 0
+  totalRounds: 0,
+  bustChance: 0
 };
 
 // --- Skeletal Tooltips -- simple plain-text tips shown on user turns ---
@@ -82,10 +83,42 @@ function updateStats() {
   document.getElementById("player-wins").textContent = stats.playerWins;
   document.getElementById("dealer-wins").textContent = stats.dealerWins;
   document.getElementById("total-pushes").textContent = stats.pushes;
-  document.getElementById("total-rounds").textContent = stats.totalRounds;
+  document.getElementById("total-rounds").textContent = stats.totalRounds - stats.pushes;
 
-  const winRate = stats.totalRounds === 0 ? 0 : Math.round((stats.playerWins / (stats.totalRounds - stats.pushes)) * 100);
+  // Special case if a Push happens the first round, prevents Player Win Rate to become NaN
+  const validRounds = stats.totalRounds - stats.pushes < 0 ? 0 : stats.totalRounds - stats.pushes;
+
+  const winRate = stats.totalRounds === 0 ? 0 : Math.round((stats.playerWins / validRounds) * 100);
   document.getElementById("win-rate").textContent = winRate + "%";
+}
+
+function updateBustProbability() {
+  if (!document.getElementById("stat-bust-chance")) return;
+
+  const { bustChance, hitChance } = calculateBustChance(playerHand);
+  const pVal = calculateHandValue(playerHand);
+
+  const bustElement = document.getElementById("stat-bust-chance");
+  bustElement.textContent = bustChance + "%";
+
+  // Change Colors based on Probability
+  if (bustChance <= 25) {
+    bustElement.style.color = "#087937ff";
+  } else if (bustChance <= 50) {
+    bustElement.style.color = "#ffab00";
+  } else {
+    bustElement.style.color = "#d50000";
+  }
+
+  document.getElementById("stat-suggest").textContent = getSuggestedMove(bustChance, hitChance, pVal);
+}
+
+function resetStats() {
+  stats.playerWins = 0;
+  stats.dealerWins = 0;
+  stats.pushes = 0;
+  stats.totalRounds = 0;
+  stats.bustChance = 0;
 }
 
 // Building the Deck
@@ -150,7 +183,50 @@ function calculateHandValue(hand) {
   return total;
 }
 
-// Creating the Card Element using Unicode
+function calculateBustChance(playerHand) {
+  const pVal = calculateHandValue(playerHand);
+
+  let bustCards = 0;
+  let totalCards = 0;
+
+  // Getting each Card from the Four Suits
+  const deckCounts = {
+    2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4,
+    10: 16, // 10 + J + Q + K
+    A: 4
+  };
+
+// Count total cards in deck at that moment
+  for (let count of Object.values(deckCounts)) {
+    totalCards += count;
+  }
+
+  // Count bust-causing cards
+  for (let rank in deckCounts) {
+    const cardValue = rank === "A" ? 11 : parseInt(rank);
+
+    if (pVal + cardValue > 21) {
+      bustCards += deckCounts[rank];
+    }
+  }
+
+  // In case there are no cards left, but very unlikely
+  if (totalCards === 0) return { bustChance: 0, hitChance: 100 };
+
+  const bustChance = Math.round((bustCards / totalCards) * 100);
+  const hitChance = 100 - bustChance;
+
+  return { bustChance, hitChance };
+}
+
+function getSuggestedMove(bustChance, hitChance, playerValue) {
+  if (playerValue >= 17) return "Stand (High total)";
+  if (bustChance > 50) return "Stand (High bust risk)";
+  if (hitChance >= 60) return "Hit (Good odds)";
+  return bustChance > 35 ? "Stand" : "Hit";
+}
+
+// Creating the Card Element
 function createCardElement(cardCode) {
     const div = document.createElement('div');
     div.classList.add('card');
@@ -197,6 +273,9 @@ function renderHands() {
   const pVal = calculateHandValue(playerHand);
   const dVal = dealerRevealed ? calculateHandValue(dealerHand) : '??';
   status.textContent = `Player: ${pVal}    |    Dealer: ${dVal}`;
+
+  // Updating the Stats for the beginning of the round
+  updateBustProbability();
 }
 
 // Function for playing sound effects
@@ -337,6 +416,7 @@ function endRound(finalMessage) {
   quitBtn.style.marginLeft = '10px';
   quitBtn.addEventListener('click', () => {
     playSound('assets/sound/click.mp3', 1.0);
+    resetStats();
     teardownGame();
     exitToMainMenu();
   });
@@ -351,6 +431,7 @@ function onHit() {
   // draws & renders a card
   playerHand.push(drawCard());
   renderHands();
+  updateBustProbability();
 
   // checks for bust or 21
   const pVal = calculateHandValue(playerHand);
@@ -390,6 +471,7 @@ function onStand() {
   const pVal = calculateHandValue(playerHand);
 
   const dVal = dealerPlay();
+  updateBustProbability();
 
   // Resolve
   if (dVal > 21) {
@@ -440,11 +522,15 @@ function startGame() {
 
     <div id="game-stats">
       <h3>Game Statistics:</h3>
-      <p>Player Wins: <span id="player-wins">0</span</p>
-      <p>Dealer Wins: <span id="dealer-wins">0</span</p>
       <p>Total Pushes: <span id="total-pushes">0</span</p>
       <p>Total Rounds: <span id="total-rounds">0</span</p>
+      <hr>
+      <p>Player Wins: <span id="player-wins">0</span</p>
+      <p>Dealer Wins: <span id="dealer-wins">0</span</p>
       <p>Player's Win Rate: <span id="win-rate">0%</span</p>
+      <hr>
+      <p>Bust Chance on Hit: <span id="stat-bust-chance">0%</span></p>
+      <p>Suggested Move: <span id="stat-suggest">---</span></p>
     </div>
 
     <div id="controls">
