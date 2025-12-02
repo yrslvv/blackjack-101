@@ -122,17 +122,18 @@ function resetStats() {
 }
 
 // Building the Deck
-function buildDeck(){
-  let values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-  let suits = ["C", "D", "H", "S"]; // Clubs, Diamonds, Hearts, Spades
-  deck = [];
+function buildDeck() {
+  const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const suits  = ["C", "D", "H", "S"]; // Clubs, Diamonds, Hearts, Spades
+
+  // clear existing array instead of reassigning
+  deck.length = 0;
 
   for (let i = 0; i < suits.length; i++) {
     for (let j = 0; j < values.length; j++) {
       deck.push(values[j] + "-" + suits[i]);
     }
   }
-  console.log(deck);
 }
 
 // Shuffling the Deck
@@ -755,5 +756,16 @@ function teardownGame() {
   // Clear game root
   const app = document.getElementById('app');
   app.innerHTML = '';
-} '';
+};
 
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    deck,                
+    buildDeck,
+    shuffleDeck,
+    calculateHandValue,
+    calculateBustChance,
+    getSuggestedMove,
+  };
+}

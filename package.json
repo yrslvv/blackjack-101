@@ -1,0 +1,24 @@
+{
+  "name": "blackjack-101",
+  "version": "1.0.0",
+  "description": "The **Blackjack Learning Game** is an educational digital recreation of the classic casino card game **Blackjack**, designed to help users both **play and learn** the rules and strategies of the game. The project emphasizes accessibility for beginners while providing strategic depth for advanced players.",
+  "main": "script.js",
+  "scripts": {
+     "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yrslvv/blackjack-101.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yrslvv/blackjack-101/issues"
+  },
+  "homepage": "https://github.com/yrslvv/blackjack-101#readme",
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
